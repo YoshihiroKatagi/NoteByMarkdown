@@ -1,28 +1,124 @@
 # AWS Cloud9 環境構築
+AWSのCloud9でLaravel（バックエンド）とReact（フロントエンド）で開発できる環境を作っていきます。
+AWS Cloud9とは、ブラウザ上で使えるIDE（統合開発環境）で、実行からデバックまで可能なサービスです。
+ブラウザのみでコードが記述可能で、local環境を1から作らなくても少し設定を行えばすぐに使用することができます。
+___
+
+## 1. AWSアカウント準備
 
 ___
 
-## AWSアカウント準備
+## 2. Cloud9のプロジェクト作成
 
 ___
 
-## Cloud9のプロジェクト作成
+## 3. サーバー環境設定
+
+### 3-1. 初期インストールパッケージの最新化
+
+```
+$ sudo yum update -y  
+```
+
+### 3-2. タイムゾーンの設定
+
+```
+$ sudo timedatectl set-timezone Asia/Tokyo
+```
+
+### 3-3. サーバーのハードディスク空き容量増加
+
+```
+# dockerアンインストール前のハードディスク使用状況を確認
+$ df -h
+
+# dockerがインストールされていることを確認
+$ yum list installed | grep docker
+
+# docker用ディレクトリの使用容量確認
+$ sudo du -shc /var/lib/*
+
+# dockerのアンインストール実行
+$ sudo yum remove docker
+
+# 不要になったdocker用ディレクトリの削除
+$ sudo rm -fr /var/lib/docker
+
+# dockerアンインストール後のハードディスク使用状況を確認
+$ df -h
+```
+
+### 3-4. PHP実行環境のセットアップ
+
+```
+# 現在インストールされているPHPのバージョンを確認
+$ php --version
+→PHP8.0ではない場合、以降の手順を実施。
+
+# PHP8系Remiリポジトリの追加
+$ sudo yum -y install http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+
+# PHP8系Remiリポジトリの優先度設定
+$ sudo vim /etc/yum.repos.d/remi-php80.repo
+→「[remi-php80]」ブロックの最後に「priority=9」を追加
+
+# PHP8系パッケージのインストール
+$ sudo yum install --enablerepo=remi-php80 php php-mbstring pdo_mysql php-pdo
+→インストール実施確認の直前に出力されるリストにおいて、
+指定したインストールパッケージのVersion欄が「8.0」に
+なっていることを確認し、インストールを実行する。
+
+# PHPのバージョンを再確認
+$ php --version
+→PHP8.0になっていればOK。
+```
 
 ___
-
-## サーバー環境設定
-
 ___
 
-## Laravel 環境構築
+## 6. Laravel 環境構築
+
+### 4-1. Composerのインストール
+
+```
+# Composerのインストール
+$ curl -sS https://getcomposer.org/installer | php
+$ sudo mv composer.phar /usr/local/bin/composer
+
+# composerコマンドとして認識されているかの確認
+$ composer
+```
+
+### 4-2. Laravelプロジェクトの作成
+
+```
+# composerのインストール対象パッケージにlaravelインストーラーをインストール
+$ composer global require laravel/installer
+
+# Composerコマンドにてblogディレクトリ内にLaravelプロジェクト作成
+$ composer create-project laravel/laravel --prefer-dist TodoApp "6.*"
+
+# 作成されたLaravelプロジェクト作成のバージョン確認
+$ cd TodoApp/
+$ php artisan --version
+→Laravel Framework 6.20.20になっていればOK
+```
+
+### 4-3. Laravelアプリケーションの動作確認
+
+```
+## Laravelアプリケーション実行
+$ cd blog/
+$ php artisan serve --port=8080
+```
 
 ___
 ___
 
-## データベース 環境構築
+## 4. データベース 環境構築
 
 
-### MariaDBのインストール
+### 4-1. MariaDBのインストール
 
 ```
 # MariaDBのステータス確認
@@ -53,9 +149,9 @@ MariaDB [(none)]> exit;
 
 ___
 
-### MariaDBの初期設定
+### 4-2 MariaDBの初期設定
 
-#### 文字コード設定
+#### 1. 文字コード設定
 
 ```
 # 現在の文字コード設定を確認
@@ -89,7 +185,7 @@ $ mysql -u root -e "show variables like 'char%';"
 →表示される結果の「character_set_server」が「utf8mb4」となっていればよい。
 ```
 
-#### 自動起動設定
+#### 2. 自動起動設定
 
 ```
 # 起動時にMariaDBが自動起動しないことの確認
@@ -113,9 +209,9 @@ $ systemctl status mariadb
 
 ___
 
-### DBユーザーの初期設定
+### 4-3. DBユーザーの初期設定
 
-#### Rootユーザーのパスワード設定
+#### 1. Rootユーザーのパスワード設定
 
 ```
 # MariaDB接続&Database切り替え
@@ -134,7 +230,7 @@ $ mysql -u root -p
 →passwordを聞かれるので設定したpasswordを入力。
 ```
 
-#### 新規ユーザー作成
+#### 2. 新規ユーザー作成
 
 ```
 # MariaDB接続&Database切り替え
@@ -161,7 +257,7 @@ $ mysql -u dbuser -p
 
 ___
 
-### データベース作成
+### 4-4. データベース作成
 
 ```
 # MariaDB接続&Database切り替え
@@ -194,9 +290,9 @@ $ mysql -u dbuser -p TodoApp
 ___
 ___
 
-## Git 環境構築
+## 5. Git 環境構築
 
-### Gitパッケージのバージョン確認&最新化
+### 5-1. Gitパッケージのバージョン確認&最新化
 
 ```
 # 現時点でインストールされているGitパッケージのバージョン確認
@@ -211,9 +307,9 @@ $ git --version
 
 ___
 
-### GitHub間の疎通設定
+### 5-2. GitHub間の疎通設定
 
-#### サーバー側のSSH公開鍵・秘密鍵作成
+#### 1. サーバー側のSSH公開鍵・秘密鍵作成
 
 ```
 # 作成前のSSH関連ディレクトリ配下確認
@@ -227,7 +323,7 @@ $ ls -l ~/.ssh/
 →「id_rsa.pub」が公開鍵、「id_rsa」が秘密鍵のファイル
 ```
 
-#### SSH公開鍵をGitHubに設定
+#### 2. SSH公開鍵をGitHubに設定
 
 GitHubにログイン（未登録の場合は新規アカウント作成）
 ↓
@@ -240,7 +336,7 @@ Key: 「id_rsa.pub」ファイルの内容をコピーし貼り付け
 ↓
 Add SSH key
 
-#### サーバー側SSH設定&疎通確認
+#### 3. サーバー側SSH設定&疎通確認
 
 ```
 # SSH設定ファイルの作成 or 変更
@@ -273,7 +369,7 @@ $ ssh -T git@github.com
 
 ___
 
-### Gitコマンドの初期設定
+### 5-3. Gitコマンドの初期設定
 
 ```
 $ git config --global user.name "GitHubのユーザ名"
@@ -291,9 +387,9 @@ $ git config --global color.branch auto
 
 ___
 
-### Gitリポジトリ初期設定
+### 5-4. Gitリポジトリ初期設定
 
-**GitHubリポジトリ作成**
+#### 1. GitHubリポジトリ作成
 Your repositories
 ↓
 New
@@ -304,8 +400,7 @@ Public or Private: どちらでもよい
 ↓
 Create repository
 
-**サーバー側設定**
-
+#### 2. サーバー側設定
 ```
 # カレントディレクトリに対するGit初期設定
 $ git init
@@ -338,7 +433,7 @@ ___
 
 ### ※開発中のGitコマンド操作
 
-#### コミット&プッシュの流れ
+#### (a)コミット&プッシュの流れ
 
 開発中には常にキリのいいところでコミット&プッシュすることを心掛ける。
 細かくコミット&プッシュすることで、作業のやり直しなどがしやすい。
@@ -351,11 +446,11 @@ $ git commit -m "ここには変更点などを書く"
 $ git push origin main
 ```
 
-#### ブランチを切って作業する
+#### (b)ブランチを切って作業する
 
 平行して複数の機能追加やバージョン管理を行う場合、それぞれの作業用ブランチを作成しそこで作業する。
 
-##### ブランチの作成
+##### 1. ブランチの作成
 ```
 $ git branch
 →ローカルリポジトリのブランチ一覧が表示される
@@ -371,7 +466,7 @@ $ git branch
 →ローカルブランチ一覧が表示され、作業ブランチが「branch_for_function1」になっている
 ```
 
-##### 作業ブランチをプッシュ
+##### 2. 作業ブランチをプッシュ
 ```
 $ git add .
 
@@ -380,7 +475,7 @@ $ git commit -m "コメント"
 $ git push origin branch_for_function1
 ```
 
-##### GitHub上でのブランチマージ
+##### 3. GitHub上でのブランチマージ
 
 Compare & Request ボタンを押す
 ↓
@@ -388,7 +483,7 @@ Create pull request ボタンを押す
 ↓
 Confirm merge ボタンを押す
 
-##### リモートリポジトリの変更をローカルリポジトリのmainに反映
+##### 4. リモートリポジトリの変更をローカルリポジトリのmainに反映
 
 ```
 $ git pull origin main
